@@ -4,7 +4,7 @@ Backend Engineer → AI Engineer transition. 19-day hands-on schedule.
 
 
 
-## >>>>>>>>>>>>>>>>>>>>>> Day 1: LLM Fundamentals <<<<<<<<<<<<<<<<<<<<<<<
+##                 ================== Day 1: LLM Fundamentals ==================
 
 **What I built:** CLI chat app with conversation history and token tracking.
 
@@ -14,5 +14,27 @@ Backend Engineer → AI Engineer transition. 19-day hands-on schedule.
     Prompt tokens grew per turn: 33 → 99 → 156 → 181 → 229 cause i gave the input + reponse appended list each time
 - Temperature=0 for deterministic output, higher for creativity
 - System/User/Assistant roles structure every API call
+
+**Stack:** Python, OpenAI SDK, gpt-4o-mini
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+
+##                    ================== Day 2: Classifier =================
+
+**What I built:**  A classifier that takes user query and classified it into one of : RAG | TOOL | GENERAL
+
+**Key concepts:**
+- Prompt Techniques...(zero-shot, few-shot,  Chain-of-Thought(CoT))
+- System Prompt Design
+- Structured Output generation
+
+**Need :** 
+We need to lebel the query and thus route the query intent so we can tell LLM what it exactly need to do
+(call Tools or it need to Retrive data (RAG) or it can answer casually if query is a general one ) to response and thus we not making the LLM to guess the next step but , we controlling it's behaviour and route
+
+**RESULT :**
+ I ran 31 queries and got 96.7% accuracy, 
+ Also i found some prompt-level issues (noted in day2_log)
 
 **Stack:** Python, OpenAI SDK, gpt-4o-mini
