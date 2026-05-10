@@ -1,3 +1,7 @@
+import sys, os   # To allow imports from sibling directories and to allow running script directly
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 from pydantic import BaseModel, ValidationError, Field
 from typing import Literal
 from openai import OpenAI
