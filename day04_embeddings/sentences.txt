@@ -1,0 +1,55 @@
+Python is a versatile programming language used for web development and automation.
+Lists in Python are mutable and can store multiple values.
+Python functions help organize reusable blocks of code.
+Dictionaries store data as key-value pairs in Python.
+Generators allow lazy evaluation and efficient memory usage.
+Decorators modify the behavior of functions without changing their code.
+Virtual environments isolate project dependencies.
+Python supports object-oriented programming with classes and inheritance.
+
+Django is a high-level Python web framework.
+Django follows the Model Template View architectural pattern.
+The Django ORM allows database queries using Python code.
+Migrations keep the database schema synchronized with models.
+Django Admin provides an automatic interface for managing data.
+Middleware processes requests and responses globally.
+Class-based views promote reusable request handling logic.
+Django includes built-in authentication and permission systems.
+
+FastAPI is a modern Python framework for building APIs.
+Pydantic validates request and response data in FastAPI.
+FastAPI automatically generates OpenAPI documentation.
+Dependency injection is a core feature of FastAPI.
+Async endpoints improve performance for I/O-bound tasks.
+FastAPI supports type hints for automatic validation.
+Uvicorn is commonly used as the ASGI server for FastAPI.
+OAuth2 and JWT are often used for authentication in FastAPI.
+
+Virat Kohli is one of the best batsmen in modern cricket.
+A cricket match consists of batting and bowling innings.
+The Indian Premier League is one of the most popular T20 tournaments.
+Fast bowlers rely on pace and swing to dismiss batsmen.
+Spinners use turn and flight to deceive the batter.
+A century means scoring one hundred runs in an innings.
+Rohit Sharma is known for his elegant stroke play.
+Fielding plays a crucial role in saving runs and taking catches.
+
+Cooking pasta requires boiling water and adding salt.
+Garlic and onions form the base of many savory dishes.
+Baking bread requires flour, yeast, water, and time.
+Spices enhance the flavor of curries and stews.
+Olive oil is commonly used in Mediterranean cooking.
+Marinating chicken improves tenderness and taste.
+A sharp knife makes vegetable preparation easier.
+Simmering allows flavors to develop gradually.
+Chefs often taste food repeatedly while cooking.
+
+The Earth revolves around the Sun once every year.
+Mars is often called the Red Planet.
+Astronauts live and work aboard the International Space Station.
+Black holes have gravitational fields so strong that light cannot escape.
+The Moon affects ocean tides on Earth.
+Saturn is famous for its prominent ring system.
+Telescopes help astronomers observe distant galaxies.
+NASA launches spacecraft to explore the solar system.
+Stars are massive spheres of hot glowing gas.
