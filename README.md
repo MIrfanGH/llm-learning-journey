@@ -104,7 +104,7 @@ Confirmed the retry path isn't dead code, then reverted the schema. Full notes i
 
 --------------------------------------------------------------------------------------------------------------------------
 
-##                    ================== Day 3: Embeddings =================
+##          ================== Day 4: Embeddings, Semantic Search, and Cosine Similarity   =================
 
 **What I built:** A semantic search engine over 50 sentences using OpenAI embeddings and cosine similarity. 
                   No vector DB — used just raw numpy math
