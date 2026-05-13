@@ -38,7 +38,7 @@ User asks a question
 
 **Stack:** Python, OpenAI SDK, gpt-4o-mini
 
---------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------
 
 
 ##                    ================== Day 2: Classifier =================
@@ -54,14 +54,14 @@ User asks a question
 We need to label the query and route it based on intent, so the LLM knows exactly what to do next — call a tool, retrieve from docs, or just answer casually. 
 We're not letting the model guess the next step; we're controlling its behaviour and the route.
 
-**RESULT :**
+**Today Result:**
  I ran 31 queries and got 96.7% accuracy, 
  Also i found some prompt-level issues (noted in day2_log.md)
 
 **Stack:** Python, OpenAI SDK, gpt-4o-mini
 
 
---------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------
 
 ##                    ================== Day 3: Validation + Retry =================
 
@@ -93,9 +93,41 @@ LLMs occasionally return malformed JSON, miss fields, or violate constraints. In
 - The error message itself is the teaching signal. Feeding it back to the LLM lets it self-correct.
 - Schema validation catches structural bugs (wrong type, missing field, out of range), NOT semantic bugs(wrong answer with valid format). Evals handle that — coming on Day 8 and Day 15.
 
-**Result:**
+**Today Result:**
 With normal constraints, retry never fired as — gpt-4o-mini rarely breaks JSON format at temperature=0.0 so, forced retry by tightening the schema (confidence must equal 0.95). 
 Then watched the LLM read the error message and fix exactly that field on the next attempt. 
 Confirmed the retry path isn't dead code, then reverted the schema. Full notes in day3_log.md.
 
 **Stack:** Python, OpenAI SDK, Pydantic v2, gpt-4o-mini
+
+
+
+--------------------------------------------------------------------------------------------------------------------------
+
+##                    ================== Day 3: Embeddings =================
+
+**What I built:** A semantic search engine over 50 sentences using OpenAI embeddings and cosine similarity. 
+                  No vector DB — used just raw numpy math
+
+**Flow**
+50 sentences → batch embed (one API call) → 50 vectors (1536 dims each)                                               ↓
+user query → embed query → cosine similarity against all 50 → sort → top_k results
+
+**Why this matters:**
+Keyword search fails when users say "cancel my account" but the doc says "account termination." Embeddings capture meaning, not exact words — so semantically similar text clusters together regardless of phrasing. This is how the RETRIEVE step finds relevant context to feed the LLM.
+Key concepts:
+
+**Key concepts:**
+Embeddings = fixed-length float arrays representing semantic meaning
+Cosine similarity measures direction (topic match), not magnitude (doc length)
+Batch the API call — embed 50 sentences in one call, not 50 calls for 1 sentence
+The score gap between results matters more than absolute scores
+Broad queries → tight score spread, many relevant results. Narrow queries → big gap, fewer relevant results.
+
+**Today Result:**
+"what are generators?" → top result scored 0.60, next dropped to 0.22 (clear signal, one relevant match).
+"explain what is python?" → top 5 all Python-related, scores 0.54–0.35 (broad query, multiple valid matches).
+No cross-domain bleeding — cricket didn't leak into Python queries. 
+Full analysis in day4_log.md.
+
+**Stack:** Python, OpenAI SDK, numpy, text-embedding-3-small
