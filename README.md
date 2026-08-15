@@ -131,3 +131,100 @@ No cross-domain bleeding — cricket didn't leak into Python queries.
 Full analysis in day4_log.md.
 
 **Stack:** Python, OpenAI SDK, numpy, text-embedding-3-small
+
+--------------------------------------------------------------------------------------------------------------------------
+
+##          ================== Day 5: Vector Database — pgvector Storage & Retrieval  =================
+
+**What I built:** `VectorStore` class (upsert / search / delete) — a PostgreSQL + pgvector storage and retrieval layer that replaces Day 4's raw-numpy similarity search with a persistent, indexed DB.
+
+**Flow**
+Document chunks
+    ↓
+Generate embeddings
+    ↓
+PostgreSQL + pgvector
+    ↓
+User query → query embedding
+    ↓
+Cosine similarity search
+    ↓
+Top-K matching chunks
+
+**Why this matters:**
+Turns Day 4's in-memory numpy search into a persistent retrieval layer the RAG pipeline can actually reuse — pgvector adds durable storage and an HNSW index for approximate-nearest-neighbor search, and lets me reuse SQLAlchemy/ORM skills already built from Django instead of learning a new vector-DB API from scratch.
+
+**Key concepts:**
+- `Vector` column type (pgvector-sqlalchemy) + HNSW index with `vector_cosine_ops` — must match the distance operator used at query time or it fails silently with plausible-looking wrong results
+- Upsert via `INSERT ... ON CONFLICT DO UPDATE` — one atomic, race-condition-safe statement instead of per-row read-then-write
+- Batch embedding calls, not one API call per row
+- Idempotent re-ingestion keys off a composite `UniqueConstraint(source, chunk_index)` as the natural key — not a hashed ID; the row's own integer PK stays plain auto-increment
+
+**Today Result:**
+First upsert implementation looped per chunk, doing a `SELECT`-by-id existence check before every insert — an N+1 query bottleneck invisible at 5 test sentences but linear-scaling to 2,000+ blocking round-trips on a real PDF, plus wasted OpenAI spend re-embedding unchanged chunks. Replaced with a single batched `ON CONFLICT DO UPDATE` statement — one round-trip, atomic, idempotent by construction. Full decision log in `day05_vector_db/day05VecotrDB_log.md`.
+
+**Stack:** Python, SQLAlchemy, psycopg2, PostgreSQL + pgvector (Docker), OpenAI embeddings
+
+--------------------------------------------------------------------------------------------------------------------------
+
+##          ================== Day 6: Chunking Strategies  =================
+
+**What I built:** Two chunkers from scratch (no LangChain) — fixed-size (token-based) and recursive (separator hierarchy + greedy merge with overlap), both returning plain chunk dicts that feed the existing ingestion and vector-store layers unchanged. Embedded all variants into the Day 5 pgvector store and measured retrieval quality against 5 adversarial queries on a 6-topic test corpus.
+
+**Flow**
+Document text
+    ↓
+Split-down — walk separator hierarchy (`\n\n` → `\n` → `. ` → ` ` → `""`), recurse into any piece still over budget → enforces a **ceiling**
+    ↓
+Merge-up — greedily pack pieces back up to `chunk_size`, carry back `overlap` tokens on each flush → enforces a **floor**
+    ↓
+Embedding → pgvector → retrieval comparison
+
+**Why this matters:**
+Chunk quality is a retrieval-quality ceiling — poor boundaries fragment an answer or mix unrelated topics, and a perfect vector search can't fix a chunk that's missing the sentence that answers the question. This is the RETRIEVE step's input quality, upstream of everything else in the pipeline.
+
+**Key concepts:**
+- Recursive chunking is two phases solving opposite problems, not one algorithm — split alone produces sentence-starved chunks (75% of budget wasted); merge alone has nothing to pack
+- Two phases can't independently enforce the same size limit — split at `chunk_size - overlap`, merge at `chunk_size`, or the composed ceiling silently breaks
+- Token-level overlap carry-back can sever a sentence mid-word, creating a keyword-matching chunk with no actual answer in it — found by measurement, not inspection
+- Smaller chunks score higher on retrieval due to embedding dilution — one relevant sentence among eight irrelevant ones drags the whole chunk's vector toward the centroid
+- Threshold refusal (next sprint) should key off the score **gap** between rank 1/2, not an absolute cutoff — absolute scores drift with chunk size
+
+**Today Result:**
+recursive@50 (10-token overlap) got the correct chunk at rank 1 on 5/5 test queries, top score on 4/5. Fixed-size chunking pulled the wrong topic entirely on a FastAPI-auth query (matched "Django" auth on shared vocabulary). recursive@100's overlap artifact produced a false rank-1 — a chunk starting with the severed fragment `" taste."` outranked the chunk that actually contained the answer. Full writeup with score tables in `day06_chunking/chunking_comparison.md`, build/debug notes in `day06_chunking/day06_log.md`.
+
+**Stack:** Python, tiktoken, OpenAI embeddings, pgvector (HNSW, `vector_cosine_ops`)
+
+--------------------------------------------------------------------------------------------------------------------------
+
+##          ================== Day 7: End-to-End RAG Pipeline (`/ask`)  =================
+
+**What I built:** First fully wired RAG slice — `POST /ask` FastAPI endpoint: retrieve → build context → generate → validate → respond. Generalized Day 3's retry wrapper (`call_llm_with_retry`) to accept any Pydantic schema so the classifier and RAG generation share one retry/validate loop instead of duplicating it. Tested against both a single-topic `.txt` corpus and a real multi-section PDF.
+
+**Flow**
+User query
+    ↓
+Vector search (`VectorStore.search()`) → top-k chunks
+    ↓
+Build context (`build_context()`) → token-budgeted, source-labeled string
+    ↓
+LLM generation
+    ↓
+Pydantic validation + retry (`call_llm_with_retry`)
+    ↓
+Response (`answer`, `grounded`, `sources_used`)
+
+**Why this matters:**
+This connects every individually-tested retrieval component into one real request path — Steps [2]+[4]+[5]+[6]+[8] wired together for the first time into something that answers a real question end-to-end, not separate pieces tested in isolation.
+
+**Key concepts:**
+- `build_context()` labels each chunk with its real document `source` (not chunking-strategy metadata) and enforces a token budget via a running `tiktoken` count — stop adding chunks, don't skip ahead, since chunks arrive rank-ordered
+- Context construction must preserve document provenance (source, page) — retrieved metadata should be carried through, never invented by the LLM
+- `grounded` is the LLM self-reporting whether its own answer is supported by the context — a free first-pass signal for refusal logic, not a verified faithfulness guarantee
+- Reusable retry function: `schema` as a parameter (`type[BaseModel]`), not hardcoded — classifier and RAG answering are now two callers of one loop
+- PDF ingestion needs a global `chunk_index` reassigned after per-page chunking — the chunker's own index resets to 0 every call, which collides with the `(source, chunk_index)` unique constraint across page boundaries
+
+**Today Result:**
+`sources_used` initially came back as the chunking-strategy tag (`"merged"`) or model-paraphrased fragments instead of real document paths — root cause was `build_context()` reading the wrong metadata field; fixed by switching to the already-existing `source` column and tightening the prompt to copy it verbatim. On PDF ingestion, traced an incomplete-but-accurate answer to a Redis-caching question back to raw `search()` output before concluding anything: the correct supporting chunk simply wasn't in top-k, outranked by an off-topic chunk sharing surface keywords — confirms Day 6's chunk-size/dilution finding concretely, on a real document, and is a known limitation deferred to post-deploy reranking, not fixed today. Full findings in `RAG_full_pipeline/log.md`.
+
+**Stack:** Python, FastAPI, PyMuPDF, tiktoken, OpenAI SDK, Pydantic v2, pgvector

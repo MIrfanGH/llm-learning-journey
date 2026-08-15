@@ -31,16 +31,16 @@ class QueryValidation(BaseModel):
 
         description = "Short reason for classification."
     )
- 
+
 
 SYSTEM_PROMPT = SYSTEM_PROMPT02
 
 
-def validation_and_retry(user_query: str, max_retries = 3) -> QueryValidation:
+def call_llm_with_retry(system_prompt: str, user_message: str, schema: type[BaseModel] | None=None,  max_retries = 3) -> QueryValidation:
 
     messages = [
-        { "role": "system", "content": SYSTEM_PROMPT},
-        { "role": "user", "content": user_query},
+        { "role": "system", "content": system_prompt},
+        { "role": "user", "content": user_message},
     ]    
 
     for attempt in range(max_retries):
@@ -49,6 +49,7 @@ def validation_and_retry(user_query: str, max_retries = 3) -> QueryValidation:
             model = "gpt-4o-mini",
             messages= messages,
             temperature=0.0,
+            response_format={"type": "json_object"},
         )
 
         raw = response.choices[0].message.content
@@ -56,7 +57,7 @@ def validation_and_retry(user_query: str, max_retries = 3) -> QueryValidation:
             parsed = json.loads(raw)
 
             # Validation Check
-            validated = QueryValidation.model_validate(parsed)
+            validated = schema.model_validate(parsed)
             return validated
         
         except json.JSONDecodeError as e:
@@ -74,6 +75,16 @@ def validation_and_retry(user_query: str, max_retries = 3) -> QueryValidation:
 
 
     raise ValueError(f"Failed after {max_retries} attempts. Last error: {error_msg}")
+
+
+def validation_and_retry(user_query: str, max_retries=3) -> QueryValidation:
+     return call_llm_with_retry(
+          system_prompt= SYSTEM_PROMPT02,
+          user_message=user_query,
+          schema=QueryValidation,
+          max_retries=max_retries  
+     )
+
     
 if __name__ == "__main__": 
 
