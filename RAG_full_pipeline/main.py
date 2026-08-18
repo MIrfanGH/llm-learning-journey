@@ -36,7 +36,7 @@ SYSTEM_PROMPT = """Answer the user's question using ONLY the context below.
                         do not paraphrase or invent source names. 
 
                         Respond with this exact JSON, nothing else:
-                        {{"answer": "...", "grounded": true/false, "sources_used": ["..."]}}
+                        {{"answer": "your answer, or a one-sentence explanation of why the context is insufficient", "grounded": true/false, "sources_used": ["..."]}}
 
                         Context:
                         {context}
