@@ -228,3 +228,35 @@ This connects every individually-tested retrieval component into one real reques
 `sources_used` initially came back as the chunking-strategy tag (`"merged"`) or model-paraphrased fragments instead of real document paths — root cause was `build_context()` reading the wrong metadata field; fixed by switching to the already-existing `source` column and tightening the prompt to copy it verbatim. On PDF ingestion, traced an incomplete-but-accurate answer to a Redis-caching question back to raw `search()` output before concluding anything: the correct supporting chunk simply wasn't in top-k, outranked by an off-topic chunk sharing surface keywords — confirms Day 6's chunk-size/dilution finding concretely, on a real document, and is a known limitation deferred to post-deploy reranking, not fixed today. Full findings in `RAG_full_pipeline/log.md`.
 
 **Stack:** Python, FastAPI, PyMuPDF, tiktoken, OpenAI SDK, Pydantic v2, pgvector
+
+
+
+##          ================== Day 8: Lightweight RAG Evaluation  =================
+
+**What I built:** A 12-question eval harness (`eval_runner.py` + `eval_questions.json`) run against the live `/ask` endpoint — covering direct questions, multi-chunk synthesis, a near-miss keyword trap, two fabricated-link traps, out-of-scope questions, and one adversarial question outside the corpus entirely. Logs raw responses to `eval_response.jsonl` alongside expected grounding/source metadata for manual review.
+
+**Flow**
+Questions (`eval_questions.json`)
+    ↓
+POST /ask for each question
+    ↓
+Merge question metadata + actual response
+    ↓
+Append as one JSON line → `eval_response.jsonl`
+    ↓
+Manual review against expected grounding/source
+
+**Why this matters:**
+Pydantic validation (Day 3) only confirms the output is structurally well-formed — right types, right fields. It says nothing about whether the answer is actually correct or genuinely grounded in the retrieved context. Eval is what tests the pipeline's real behavior, especially on adversarial cases designed to induce hallucination — this closes the VALIDATE step at a system level, not just a schema level.
+
+**Key concepts:**
+- Fabricated-link traps (two unrelated concepts sharing retrieval keywords, e.g. "FastAPI + Redis") and adversarial questions (topics outside the corpus the model likely knows from training) specifically test for hallucination beyond simple correctness
+- Literal example values inside a system prompt aren't inert — a placeholder like `"answer": "..."` gets treated by the model as content to reproduce under low-signal conditions, not as a schema to fill
+- Full absolute file paths break JSON generation — backslash is JSON's escape character, so asking the model to reproduce a Windows path verbatim causes intermittent malformed output; label chunks with `Path(chunk['source']).name` instead
+- A refusal (`grounded: false`) isn't automatically a retrieval bug — isolate stage by stage (raw retrieval output → raw context output → generation) before assuming where a failure actually lives
+- Incremental, one-row-at-a-time writes need JSON Lines (`.jsonl`), not a single JSON array — a mid-run crash still leaves prior rows readable
+
+**Today Result:**
+12/12 correct grounding classifications, with two real bugs found and fixed along the way: a prompt placeholder leaking `"..."` into refusal answers, and Windows paths breaking JSON escaping in `sources_used`. One question (fast bowler vs. spinner) intermittently refused despite the answer being retrieved at rank 1 with an intact context — traced stage by stage to a generation-layer grounding-consistency issue on evaluative-framing questions, not a retrieval or code bug. Full findings in `RAG_eval/RAG_full_pipeline_eval.md`.
+
+**Stack:** Python, FastAPI, requests, OpenAI SDK, Pydantic v2, pgvector
