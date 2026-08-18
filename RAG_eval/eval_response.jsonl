@@ -1,0 +1,35 @@
+{"id": 1, "question": "What is Django's architectural pattern?", "category": "direct", "expected_grounded": true, "expected_source_contains": "sample.txt", 
+"response": {"answer": "Django follows the Model Template View architectural pattern.", "grounded": true, "sources_used": ["sample.txt"]}}
+
+{"id": 2, "question": "What role does Pydantic play in FastAPI?", "category": "direct", "expected_grounded": true, "expected_source_contains": "sample.txt", 
+"response": {"answer": "Pydantic provides structured validation for incoming and outgoing data in FastAPI, allowing for automatic validation and generation of OpenAPI documentation through type hints.", "grounded": true, "sources_used": ["[Source: sample_pdf.pdf | Page: 1]", "[Source: sample.txt | Page: ?]"]}}
+
+{"id": 3, "question": "What's the difference between a cache hit and a cache miss?", "category": "direct", "expected_grounded": true, "expected_source_contains": "sample_pdf.pdf", 
+"response": {"answer": "A cache hit occurs when the requested data is found in the cache, avoiding the need for a database query or computation, while a cache miss happens when the data is not in the cache, requiring the application to fetch or compute the value and then populate the cache.", "grounded": true, "sources_used": ["sample_pdf.pdf | Page: 2"]}}
+
+{"id": 4, "question": "Why should background tasks be idempotent?", "category": "direct", "expected_grounded": true, "expected_source_contains": "sample_pdf.pdf", 
+"response": {"answer": "Background tasks should be idempotent to ensure that retries do not create duplicate side effects, which can occur if an operation is executed more than once without idempotency.", "grounded": true, "sources_used": ["sample_pdf.pdf | Page: 2", "sample_pdf.pdf | Page: 3"]}}
+
+{"id": 5, "question": "What makes a good fast bowler vs a spinner in cricket?", "category": "multi_chunk", "expected_grounded": true, "expected_source_contains": "sample.txt",
+"response": {"answer": "The context does not provide sufficient information to compare a good fast bowler and a spinner in cricket.", "grounded": false, "sources_used": []}}
+
+{"id": 6, "question": "What should happen if Redis or PostgreSQL becomes unavailable?", "category": "multi_chunk", "expected_grounded": true, "expected_source_contains": "sample_pdf.pdf",
+"response": {"answer": "If Redis becomes unavailable, the application should have a defined behavior rather than failing every request that touches the cache. If PostgreSQL becomes unavailable, requests requiring durable state should fail clearly and quickly.", "grounded": true, "sources_used": ["sample_pdf.pdf | Page: 4", "sample_pdf.pdf | Page: 2"]}}
+
+{"id": 7, "question": "What authentication methods does FastAPI support?", "category": "trap_near_miss", "expected_grounded": true, "expected_source_contains": "sample.txt", 
+"response": {"answer": "FastAPI supports OAuth2 and JWT for authentication.", "grounded": true, "sources_used": ["sample.txt"]}}
+
+{"id": 8, "question": "How does FastAPI use Redis for caching?", "category": "trap_fabricated_link", "expected_grounded": false, "expected_source_contains": null, 
+"response": {"answer": "The context is insufficient to provide information on how FastAPI uses Redis for caching.", "grounded": false, "sources_used": []}}
+
+{"id": 9, "question": "Does Django use Celery for background jobs?", "category": "trap_fabricated_link", "expected_grounded": false, "expected_source_contains": null, 
+"response": {"answer": "The context does not provide information on whether Django uses Celery for background jobs.", "grounded": false, "sources_used": []}}
+
+{"id": 10, "question": "What's the capital of France?", "category": "out_of_scope", "expected_grounded": false, "expected_source_contains": null, 
+"response": {"answer": "The context is insufficient to answer the question about the capital of France.", "grounded": false, "sources_used": []}}
+
+{"id": 11, "question": "How do I train a neural network with PyTorch?", "category": "out_of_scope", "expected_grounded": false, "expected_source_contains": null, 
+"response": {"answer": "The context is insufficient to provide information on training a neural network with PyTorch.", "grounded": false, "sources_used": []}}
+
+{"id": 12, "question": "How does pgvector's HNSW index affect query latency?", "category": "adversarial", "expected_grounded": false, "expected_source_contains": null, 
+"response": {"answer": "The context is insufficient.", "grounded": false, "sources_used": []}}
